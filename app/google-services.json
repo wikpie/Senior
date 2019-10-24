@@ -1,0 +1,69 @@
+{
+  "project_info": {
+    "project_number": "1092310302340",
+    "firebase_url": "https://degree-149f1.firebaseio.com",
+    "project_id": "degree-149f1",
+    "storage_bucket": "degree-149f1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1092310302340:android:ad147462bb86cdbfd4ccd1",
+        "android_client_info": {
+          "package_name": "com.example.senior"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1092310302340-a12vs0k9f2usjhllttihko7g6g1rbptt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRwG2XRlyEzrtdBksaJREB8Tr6ChJZxvg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1092310302340-a12vs0k9f2usjhllttihko7g6g1rbptt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1092310302340:android:7072bfb14746a0d0",
+        "android_client_info": {
+          "package_name": "wikpie.com"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1092310302340-a12vs0k9f2usjhllttihko7g6g1rbptt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRwG2XRlyEzrtdBksaJREB8Tr6ChJZxvg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1092310302340-a12vs0k9f2usjhllttihko7g6g1rbptt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
