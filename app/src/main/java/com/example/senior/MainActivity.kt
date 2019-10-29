@@ -8,12 +8,14 @@ import android.content.SharedPreferences
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.android.synthetic.main.activity_main.*
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
@@ -21,7 +23,7 @@ class MainActivity : AppCompatActivity() {
     private val bluetoothAdapter:BluetoothAdapter?= BluetoothAdapter.getDefaultAdapter()
     private val REQUEST_ENABLE_BT = 1
     private val sharedPrefs by lazy { getSharedPreferences("main", PRIVATE_MODE) }
-    private val ref=FirebaseDatabase.getInstance().reference.child("")
+    private val ref=FirebaseDatabase.getInstance().getReference("senior")
     @TargetApi(Build.VERSION_CODES.O)
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,6 +51,23 @@ class MainActivity : AppCompatActivity() {
             }
 
         }
+        val handler = Handler()
+        val timer = Timer()
+        val doAsynchronousTask = object : TimerTask() {
+            override fun run() {
+                handler.post {
+                    try {
+                        //setTime()
+                        //val senior=SeniorService.Senior("sa",0,0)
+                        //ref.child("1").setValue(senior)
+                    } catch (e: Exception) {
+                        Log.d("serwis",e.toString())
+                    }
+                }
+            }
+        }
+        timer.schedule(doAsynchronousTask, 0, 10000)
+
 
     }
     private fun checkBluetoothWorking(context: Context){

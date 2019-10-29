@@ -57,7 +57,7 @@ class SeniorService: Service(),OnMapReadyCallback {
     private var databasePulse=0
     private var databaseSteps=0
     private lateinit var map: GoogleMap
-    private val ref=FirebaseDatabase.getInstance().reference.child("seniors")
+    private val ref=FirebaseDatabase.getInstance().getReference("/seniors")
 
 
 
@@ -69,8 +69,8 @@ class SeniorService: Service(),OnMapReadyCallback {
         override fun run() {
             setTime()
             timeHandler.postDelayed(this, 1000)
-            var senior=Senior(databaseLocation,databasePulse,databaseSteps)
-            ref.child("1").setValue(senior)
+           // var senior=Senior(databaseLocation,databasePulse,databaseSteps)
+           // ref.child("1").setValue(senior)
         }
     }
 
@@ -79,15 +79,18 @@ class SeniorService: Service(),OnMapReadyCallback {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val input = intent?.getStringExtra("inputExtra")
         createNotificationChannel()
+        Log.d("serwis", ref.toString())
         val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
             this,
             0, notificationIntent, 0
         )
+        //var senior=Senior(databaseLocation,databasePulse,databaseSteps)
+        //ref.child("1").setValue(senior)
         val notification = NotificationCompat.Builder(this, name)
-            .setContentTitle("Foreground Service Kotlin Example")
+            .setContentTitle("Serwis monitorujący zachowanie osoby starszej")
             .setContentText(input)
-            .setSmallIcon(R.drawable.common_google_signin_btn_icon_light_normal_background)
+            .setSmallIcon(R.drawable.ic_local_hospital_black_24dp)
             .setContentIntent(pendingIntent)
             .build()
         startForeground(1, notification)
@@ -97,13 +100,28 @@ class SeniorService: Service(),OnMapReadyCallback {
         ).show()
         //check if bluetooth works
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        setTime()
-        timeHandler = Handler(Looper.getMainLooper())
+        val handler = Handler()
+        val timer = Timer()
+        val doAsynchronousTask = object : TimerTask() {
+            override fun run() {
+                handler.post {
+                    try {
+                        setTime()
+                        //val senior=Senior(databaseLocation,databasePulse,databaseSteps)
+                        //ref.child("1").setValue(senior)
+                    } catch (e: Exception) {
+                    Log.d("serwis",e.toString())
+                    }
+                }
+            }
+        }
+        timer.schedule(doAsynchronousTask, 0, 60000)
         return START_STICKY
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
         map=googleMap
+
         mFusedLocationClient.lastLocation
             .addOnSuccessListener{ location: Location? ->
                 if(location!=null){
@@ -112,17 +130,17 @@ class SeniorService: Service(),OnMapReadyCallback {
                     longitude = location.longitude
                     Log.d("Main",latitude.toString())
                     Log.d("Main",longitude.toString())
-                    //val myPlace = LatLng(latitude, longitude)  // this is New York
-                    //map.addMarker(MarkerOptions().position(myPlace).title("My Favorite City"))
-                   // map.animateCamera( CameraUpdateFactory.zoomTo( 15.0f ) )
-                    //map.moveCamera(CameraUpdateFactory.newLatLng(myPlace))
                     addresses=geocoder.getFromLocation(latitude,longitude,1)
                     address= addresses[0].getAddressLine(0)
                     city= addresses[0].locality
-                    //text_gps.text= "$address , $city"
+                    val senior=Senior(city+address, mLastLocation!!,0,0)
+                    ref.child("marek").setValue(senior)
                 }
                 else{
-                    Log.d("Main", "nie ma")
+                    Toast.makeText(
+                        this, "Nie można znaleźć lokalizacji",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
 
             }
@@ -146,7 +164,7 @@ class SeniorService: Service(),OnMapReadyCallback {
 
 
     }
-    class Senior(val location:String, val pulse: Int, val steps:Int ) {
+    class Senior(val location:String,val locationLat:Location, val pulse: Int, val steps:Int ) {
 
     }
 
