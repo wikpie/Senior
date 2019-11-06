@@ -6,6 +6,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.hardware.Sensor
@@ -23,6 +24,8 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityCompat.startActivityForResult
 import androidx.core.app.NotificationCompat
+import com.example.senior.movement.StepDetector
+import com.example.senior.movement.StepListener
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -40,11 +43,11 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 
 
-class SeniorService: Service(),OnMapReadyCallback {
+class SeniorService: Service(), SensorEventListener, StepListener {
     private val name = "Service Senior"
     @RequiresApi(Build.VERSION_CODES.O)
     val timeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("dd-mm-yy HH:mm")
-    private lateinit var timeHandler: Handler
+    private lateinit var mainHandler: Handler
     private lateinit var mFusedLocationClient: FusedLocationProviderClient
     var mLastLocation: Location? = null
     private var address=""
@@ -59,19 +62,29 @@ class SeniorService: Service(),OnMapReadyCallback {
     private lateinit var map: GoogleMap
     private val ref=FirebaseDatabase.getInstance().getReference("/seniors")
 
+    private lateinit var sensorManager: SensorManager
+    private lateinit var simpleStepDetector: StepDetector
+    private lateinit var accel: Sensor
+    private var numSteps: Int = 0
+
+
 
 
     override fun onBind(p0: Intent?): IBinder? {
         return null
     }
-    private val updateTime = object : Runnable {
+    private val sendData = object : Runnable {
         @RequiresApi(Build.VERSION_CODES.O)
         override fun run() {
             setTime()
-            timeHandler.postDelayed(this, 1000)
-           // var senior=Senior(databaseLocation,databasePulse,databaseSteps)
-           // ref.child("1").setValue(senior)
+            mainHandler.postDelayed(this, 1000)
+            var senior=Senior(city+address, mLastLocation!!,0,numSteps)
+            ref.child("marek").setValue(senior)
         }
+    }
+    private val bluetoothAdapter: BluetoothAdapter? by lazy(LazyThreadSafetyMode.NONE) {
+        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        bluetoothManager.adapter
     }
 
 
@@ -79,6 +92,12 @@ class SeniorService: Service(),OnMapReadyCallback {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val input = intent?.getStringExtra("inputExtra")
         createNotificationChannel()
+        mainHandler = Handler(Looper.getMainLooper())
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        accel = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        simpleStepDetector = StepDetector()
+        simpleStepDetector.registerListener(this)
+        sensorManager.registerListener(this, accel, SensorManager.SENSOR_DELAY_FASTEST)
         Log.d("serwis", ref.toString())
         val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
@@ -100,28 +119,23 @@ class SeniorService: Service(),OnMapReadyCallback {
         ).show()
         //check if bluetooth works
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        val handler = Handler()
-        val timer = Timer()
-        val doAsynchronousTask = object : TimerTask() {
-            override fun run() {
-                handler.post {
-                    try {
-                        setTime()
-                        //val senior=Senior(databaseLocation,databasePulse,databaseSteps)
-                        //ref.child("1").setValue(senior)
-                    } catch (e: Exception) {
-                    Log.d("serwis",e.toString())
-                    }
-                }
-            }
-        }
-        timer.schedule(doAsynchronousTask, 0, 60000)
+        getLocation()
         return START_STICKY
     }
+    override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
 
-    override fun onMapReady(googleMap: GoogleMap) {
-        map=googleMap
-
+    override fun onSensorChanged(event: SensorEvent) {
+        if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
+            simpleStepDetector.updateAccel(
+                event.timestamp, event.values[0], event.values[1], event.values[2]
+            )
+        }
+    }
+    override fun step(timeNs: Long) {
+        numSteps++
+        //text_steps.text = "Kroki:$numSteps"
+    }
+    private fun getLocation(){
         mFusedLocationClient.lastLocation
             .addOnSuccessListener{ location: Location? ->
                 if(location!=null){
@@ -133,19 +147,21 @@ class SeniorService: Service(),OnMapReadyCallback {
                     addresses=geocoder.getFromLocation(latitude,longitude,1)
                     address= addresses[0].getAddressLine(0)
                     city= addresses[0].locality
-                    val senior=Senior(city+address, mLastLocation!!,0,0)
-                    ref.child("marek").setValue(senior)
+                    Log.d("jojoj", "$city" )
                 }
                 else{
                     Toast.makeText(
                         this, "Nie można znaleźć lokalizacji",
                         Toast.LENGTH_SHORT
                     ).show()
-                }
-
-            }
-
+                }}
     }
+
+
+
+
+
+
     @RequiresApi(Build.VERSION_CODES.O)
     private fun setTime(){
         val currentTime= LocalDateTime.now()
