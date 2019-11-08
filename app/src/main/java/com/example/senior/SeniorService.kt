@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -20,6 +21,7 @@ import android.os.*
 import androidx.appcompat.app.AppCompatActivity
 import android.util.Log
 import android.widget.Toast
+import androidx.annotation.Nullable
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityCompat.startActivityForResult
@@ -39,6 +41,7 @@ import com.google.android.gms.maps.model.Marker
 import com.google.firebase.database.FirebaseDatabase
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 
@@ -52,6 +55,7 @@ class SeniorService: Service(), SensorEventListener, StepListener {
     var mLastLocation: Location? = null
     private var address=""
     private var city=""
+    private var uid=""
     private val geocoder= Geocoder(this, Locale.getDefault())
     private var addresses= listOf<Address>()
     private var latitude:Double=0.0
@@ -61,6 +65,8 @@ class SeniorService: Service(), SensorEventListener, StepListener {
     private var databaseSteps=0
     private lateinit var map: GoogleMap
     private val ref=FirebaseDatabase.getInstance().getReference("/seniors")
+    private var PRIVATE_MODE = 0
+    private val sharedPrefs by lazy { getSharedPreferences("uid", PRIVATE_MODE) }
 
     private lateinit var sensorManager: SensorManager
     private lateinit var simpleStepDetector: StepDetector
@@ -76,10 +82,21 @@ class SeniorService: Service(), SensorEventListener, StepListener {
     private val sendData = object : Runnable {
         @RequiresApi(Build.VERSION_CODES.O)
         override fun run() {
-            setTime()
-            mainHandler.postDelayed(this, 1000)
-            var senior=Senior(city+address, mLastLocation!!,0,numSteps)
-            ref.child("marek").setValue(senior)
+            //setTime()
+            var senior=Senior(address, latitude, longitude, 0,numSteps)
+            ref.child("$uid/now").setValue(senior)
+            Log.d("jojjo","$mLastLocation")
+            Log.d("jojjo","$numSteps")
+            Log.d("jojjo","$city")
+            mainHandler.postDelayed(this,1000)
+            var currentDateTime=LocalDateTime.now()
+            var time = currentDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+            if(time=="08:00"){
+                ref.child("$uid/8am").setValue(senior)
+            }
+            if(time=="15:00"){
+                ref.child("$uid/3pm").setValue(senior)
+            }
         }
     }
     private val bluetoothAdapter: BluetoothAdapter? by lazy(LazyThreadSafetyMode.NONE) {
@@ -90,9 +107,23 @@ class SeniorService: Service(), SensorEventListener, StepListener {
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val input = intent?.getStringExtra("inputExtra")
+        if (intent != null) {
+            if (intent.hasExtra("uid"))  {
+                uid = intent.getStringExtra("uid")
+                val editor = sharedPrefs.edit()
+                editor.putString("uid", uid)
+                editor.apply()
+            }
+            else{
+                uid= sharedPrefs.getString("uid","jo")!!
+
+            }
+        }
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        getLocation()
         createNotificationChannel()
         mainHandler = Handler(Looper.getMainLooper())
+        mainHandler.post(sendData)
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         accel = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         simpleStepDetector = StepDetector()
@@ -108,7 +139,7 @@ class SeniorService: Service(), SensorEventListener, StepListener {
         //ref.child("1").setValue(senior)
         val notification = NotificationCompat.Builder(this, name)
             .setContentTitle("Serwis monitorujący zachowanie osoby starszej")
-            .setContentText(input)
+            .setContentText(uid)
             .setSmallIcon(R.drawable.ic_local_hospital_black_24dp)
             .setContentIntent(pendingIntent)
             .build()
@@ -118,8 +149,7 @@ class SeniorService: Service(), SensorEventListener, StepListener {
             Toast.LENGTH_SHORT
         ).show()
         //check if bluetooth works
-        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        getLocation()
+
         return START_STICKY
     }
     override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
@@ -155,6 +185,9 @@ class SeniorService: Service(), SensorEventListener, StepListener {
                         Toast.LENGTH_SHORT
                     ).show()
                 }}
+            .addOnFailureListener{
+                Log.d("jojjo","gównogównogówno")
+            }
     }
 
 
@@ -180,8 +213,6 @@ class SeniorService: Service(), SensorEventListener, StepListener {
 
 
     }
-    class Senior(val location:String,val locationLat:Location, val pulse: Int, val steps:Int ) {
-
-    }
+    class Senior(val location:String,val latitude:Double, val longitude: Double, val pulse: Int, val steps:Int)
 
 }

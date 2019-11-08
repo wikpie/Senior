@@ -10,13 +10,23 @@
         android:id="@+id/writeUid"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="350dp"
         android:ems="10"
-        android:inputType="textPersonName"
-        android:text="Uid"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:hint="Wpisz id"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <EditText
+        android:id="@+id/name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:hint="Podaj imię i nazwisko"
+        app:layout_constraintBottom_toTopOf="@id/confirm"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/writeUid" />
 
     <Button
         android:id="@+id/confirm"
@@ -24,7 +34,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="Zatwierdź"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/writeUid" />
+        app:layout_constraintTop_toBottomOf="@+id/name" />
 </androidx.constraintlayout.widget.ConstraintLayout>

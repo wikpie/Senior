@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Senior</string>
+    <string name="appwidget_text">ALARM BUTTON</string>
+    <string name="add_widget">Dodaj widget</string>
 </resources>

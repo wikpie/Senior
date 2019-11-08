@@ -23,16 +23,16 @@ class MainActivity : AppCompatActivity() {
     private val bluetoothAdapter:BluetoothAdapter?= BluetoothAdapter.getDefaultAdapter()
     private val REQUEST_ENABLE_BT = 1
     private val sharedPrefs by lazy { getSharedPreferences("main", PRIVATE_MODE) }
-    private val ref=FirebaseDatabase.getInstance().getReference("senior")
+    private val ref=FirebaseDatabase.getInstance().getReference("seniors")
     @TargetApi(Build.VERSION_CODES.O)
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val permissions = arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION)
+        ActivityCompat.requestPermissions(this, permissions,0)
         Log.d("Main", sharedPrefs.getBoolean("main", false).toString())
         if (sharedPrefs.getBoolean("main", false)) {
             checkBluetoothWorking(this)
-            val permissions = arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION)
-            ActivityCompat.requestPermissions(this, permissions,0)
             // setContentView(R.layout.senior_service)
             Intent(this, SeniorService::class.java).also { intent ->
                 startForegroundService(intent)
@@ -41,8 +41,11 @@ class MainActivity : AppCompatActivity() {
             setContentView(R.layout.activity_main)
             confirm.setOnClickListener {
                 val uid=writeUid.text.toString()
-                //if()
+                val name=name.text.toString()
+                ref.child("$uid/imie").setValue(name)
                 Intent(this, SeniorService::class.java).also { intent ->
+                    intent.putExtra("uid",uid)
+                    intent.putExtra("name",name)
                     startForegroundService(intent)
                 }
                 val editor = sharedPrefs.edit()
@@ -51,23 +54,6 @@ class MainActivity : AppCompatActivity() {
             }
 
         }
-        val handler = Handler()
-        val timer = Timer()
-        val doAsynchronousTask = object : TimerTask() {
-            override fun run() {
-                handler.post {
-                    try {
-                        //setTime()
-                        //val senior=SeniorService.Senior("sa",0,0)
-                        //ref.child("1").setValue(senior)
-                    } catch (e: Exception) {
-                        Log.d("serwis",e.toString())
-                    }
-                }
-            }
-        }
-        timer.schedule(doAsynchronousTask, 0, 10000)
-
 
     }
     private fun checkBluetoothWorking(context: Context){
