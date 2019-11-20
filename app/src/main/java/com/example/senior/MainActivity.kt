@@ -76,6 +76,10 @@ class MainActivity : AppCompatActivity() {
                 val uid=writeUid.text.toString()
                 val name=name.text.toString()
                 val home=address.text.toString()
+                val seniorReset= SeniorService.SeniorEarlier("", 0)
+                for(i in 0..23) {
+                    ref.child("$uid/$i").setValue(seniorReset)
+                }
                 ref.child("$uid/imie").setValue(name)
                 ref.child("$uid/dom").setValue(home)
                 Intent(this, SeniorService::class.java).also { intent ->

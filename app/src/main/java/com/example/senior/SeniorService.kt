@@ -82,6 +82,13 @@ class SeniorService: Service(), SensorEventListener, StepListener {
             var currentDateTime=LocalDateTime.now()
             var time = currentDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
             when(time) {
+                "00:00" -> ref.child("$uid/0").setValue(seniorEarlier)
+                "01:00" -> ref.child("$uid/1").setValue(seniorEarlier)
+                "02:00" -> ref.child("$uid/2").setValue(seniorEarlier)
+                "03:00" -> ref.child("$uid/3").setValue(seniorEarlier)
+                "04:00" -> ref.child("$uid/4").setValue(seniorEarlier)
+                "05:00" -> ref.child("$uid/5").setValue(seniorEarlier)
+                "06:00" -> ref.child("$uid/6").setValue(seniorEarlier)
                 "07:00" -> ref.child("$uid/7").setValue(seniorEarlier)
                 "08:00" -> ref.child("$uid/8").setValue(seniorEarlier)
                 "09:00" -> ref.child("$uid/9").setValue(seniorEarlier)
@@ -97,6 +104,9 @@ class SeniorService: Service(), SensorEventListener, StepListener {
                 "19:00" -> ref.child("$uid/19").setValue(seniorEarlier)
                 "20:00" -> ref.child("$uid/20").setValue(seniorEarlier)
                 "21:00" -> ref.child("$uid/21").setValue(seniorEarlier)
+                "22:00" -> ref.child("$uid/22").setValue(seniorEarlier)
+                "23:00" -> ref.child("$uid/23").setValue(seniorEarlier)
+
             }
             if(time=="00:01"){
                 ref.child("$uid/now").setValue(seniorResetNow)
