@@ -1,7 +1,6 @@
 package com.example.senior
 
 import android.app.Service
-import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -18,30 +17,21 @@ import android.location.Address
 import android.location.Geocoder
 import android.location.Location
 import android.os.*
-import androidx.appcompat.app.AppCompatActivity
 import android.util.Log
 import android.widget.Toast
-import androidx.annotation.Nullable
 import androidx.annotation.RequiresApi
-import androidx.core.app.ActivityCompat
-import androidx.core.app.ActivityCompat.startActivityForResult
 import androidx.core.app.NotificationCompat
 import com.example.senior.movement.StepDetector
 import com.example.senior.movement.StepListener
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
-import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.OnMapReadyCallback
-import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
-
-import com.google.android.gms.maps.model.Marker
 import com.google.firebase.database.FirebaseDatabase
-import java.text.SimpleDateFormat
+import com.polidea.rxandroidble2.RxBleClient
+import com.polidea.rxandroidble2.RxBleDevice
+import com.polidea.rxandroidble2.scan.ScanResult
+import com.polidea.rxandroidble2.scan.ScanSettings
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 
@@ -54,7 +44,6 @@ class SeniorService: Service(), SensorEventListener, StepListener {
     private lateinit var mFusedLocationClient: FusedLocationProviderClient
     var mLastLocation: Location? = null
     private var address=""
-    private var city=""
     private var uid=""
     private val geocoder= Geocoder(this, Locale.getDefault())
     private var addresses= listOf<Address>()
@@ -62,16 +51,16 @@ class SeniorService: Service(), SensorEventListener, StepListener {
     private var longitude=0.0
     private var databaseLocation=" "
     private var databasePulse=0
-    private var databaseSteps=0
     private lateinit var map: GoogleMap
     private val ref=FirebaseDatabase.getInstance().getReference("/seniors")
     private var PRIVATE_MODE = 0
     private val sharedPrefs by lazy { getSharedPreferences("uid", PRIVATE_MODE) }
-
     private lateinit var sensorManager: SensorManager
     private lateinit var simpleStepDetector: StepDetector
     private lateinit var accel: Sensor
     private var numSteps: Int = 0
+
+
 
 
 
@@ -82,20 +71,40 @@ class SeniorService: Service(), SensorEventListener, StepListener {
     private val sendData = object : Runnable {
         @RequiresApi(Build.VERSION_CODES.O)
         override fun run() {
-            //setTime()
-            var senior=Senior(address, latitude, longitude, 0,numSteps)
+            var senior=Senior(address, latitude, longitude, databasePulse,numSteps)
+            var seniorEarlier=SeniorEarlier(address,databasePulse)
+            val seniorResetNow=Senior(address,latitude,longitude,databasePulse,0)
+            val seniorReset=SeniorEarlier("",0)
             ref.child("$uid/now").setValue(senior)
             Log.d("jojjo","$mLastLocation")
             Log.d("jojjo","$numSteps")
-            Log.d("jojjo","$city")
             mainHandler.postDelayed(this,1000)
             var currentDateTime=LocalDateTime.now()
             var time = currentDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
-            if(time=="08:00"){
-                ref.child("$uid/8am").setValue(senior)
+            when(time) {
+                "07:00" -> ref.child("$uid/7").setValue(seniorEarlier)
+                "08:00" -> ref.child("$uid/8").setValue(seniorEarlier)
+                "09:00" -> ref.child("$uid/9").setValue(seniorEarlier)
+                "10:00" -> ref.child("$uid/10").setValue(seniorEarlier)
+                "11:00" -> ref.child("$uid/11").setValue(seniorEarlier)
+                "12:00" -> ref.child("$uid/12").setValue(seniorEarlier)
+                "13:00" -> ref.child("$uid/13").setValue(seniorEarlier)
+                "14:00" -> ref.child("$uid/14").setValue(seniorEarlier)
+                "15:00" -> ref.child("$uid/15").setValue(seniorEarlier)
+                "16:00" -> ref.child("$uid/16").setValue(seniorEarlier)
+                "17:00" -> ref.child("$uid/17").setValue(seniorEarlier)
+                "18:00" -> ref.child("$uid/18").setValue(seniorEarlier)
+                "19:00" -> ref.child("$uid/19").setValue(seniorEarlier)
+                "20:00" -> ref.child("$uid/20").setValue(seniorEarlier)
+                "21:00" -> ref.child("$uid/21").setValue(seniorEarlier)
             }
-            if(time=="15:00"){
-                ref.child("$uid/3pm").setValue(senior)
+            if(time=="00:01"){
+                ref.child("$uid/now").setValue(seniorResetNow)
+                numSteps=0
+                databasePulse=0
+                for(i in 7..21) {
+                    ref.child("$uid/$i").setValue(seniorReset)
+                }
             }
         }
     }
@@ -116,9 +125,9 @@ class SeniorService: Service(), SensorEventListener, StepListener {
             }
             else{
                 uid= sharedPrefs.getString("uid","jo")!!
-
             }
         }
+
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         getLocation()
         createNotificationChannel()
@@ -135,8 +144,6 @@ class SeniorService: Service(), SensorEventListener, StepListener {
             this,
             0, notificationIntent, 0
         )
-        //var senior=Senior(databaseLocation,databasePulse,databaseSteps)
-        //ref.child("1").setValue(senior)
         val notification = NotificationCompat.Builder(this, name)
             .setContentTitle("Serwis monitorujący zachowanie osoby starszej")
             .setContentText(uid)
@@ -148,7 +155,6 @@ class SeniorService: Service(), SensorEventListener, StepListener {
             this, "Rozpoczęcie pracy serwisu",
             Toast.LENGTH_SHORT
         ).show()
-        //check if bluetooth works
 
         return START_STICKY
     }
@@ -163,7 +169,6 @@ class SeniorService: Service(), SensorEventListener, StepListener {
     }
     override fun step(timeNs: Long) {
         numSteps++
-        //text_steps.text = "Kroki:$numSteps"
     }
     private fun getLocation(){
         mFusedLocationClient.lastLocation
@@ -176,15 +181,14 @@ class SeniorService: Service(), SensorEventListener, StepListener {
                     Log.d("Main",longitude.toString())
                     addresses=geocoder.getFromLocation(latitude,longitude,1)
                     address= addresses[0].getAddressLine(0)
-                    city= addresses[0].locality
-                    Log.d("jojoj", "$city" )
                 }
                 else{
                     Toast.makeText(
                         this, "Nie można znaleźć lokalizacji",
                         Toast.LENGTH_SHORT
                     ).show()
-                }}
+                }
+            }
             .addOnFailureListener{
                 Log.d("jojjo","gównogównogówno")
             }
@@ -214,5 +218,5 @@ class SeniorService: Service(), SensorEventListener, StepListener {
 
     }
     class Senior(val location:String,val latitude:Double, val longitude: Double, val pulse: Int, val steps:Int)
-
+    class SeniorEarlier(val location:String, val pulse:Int)
 }

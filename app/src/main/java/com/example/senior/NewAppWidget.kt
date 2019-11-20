@@ -10,6 +10,7 @@ import android.net.Uri
 import android.widget.RemoteViews
 import androidx.core.content.ContextCompat.startActivity
 
+
 /**
  * Implementation of App Widget functionality.
  */
@@ -38,12 +39,10 @@ private fun getPendingIntent(context: Context, value: Int): PendingIntent {
     //1
 
     //2
-    val uri = Uri.parse("smsto:786280342")
-    val intent = Intent(ACTION_SENDTO, uri)
-    intent.putExtra("sms_body", "ALARM ALARM")
-    //3
-    //4
-    return PendingIntent.getActivity(context, value, intent, 0)
+    val callIntent = Intent(Intent.ACTION_CALL)
+    callIntent.data = Uri.parse("tel:786280342")
+
+    return PendingIntent.getActivity(context, value, callIntent, 0)
 }
 
 internal fun updateAppWidget(
