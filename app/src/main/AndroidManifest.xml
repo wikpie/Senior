@@ -23,6 +23,8 @@
         <receiver android:name=".NewAppWidget">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.example.senior.UID" />
+                <action android:name="com.example.senior.NUMBER" />
             </intent-filter>
 
             <meta-data

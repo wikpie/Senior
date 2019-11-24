@@ -4,21 +4,16 @@ import android.annotation.TargetApi
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.google.firebase.database.FirebaseDatabase
-import com.polidea.rxandroidble2.RxBleClient
-import com.polidea.rxandroidble2.RxBleDevice
-import com.polidea.rxandroidble2.scan.ScanResult
-import com.polidea.rxandroidble2.scan.ScanSettings
 import kotlinx.android.synthetic.main.activity_main.*
-import java.util.*
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -35,7 +30,7 @@ class MainActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val permissions = arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION)
+        val permissions = arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION, android.Manifest.permission.CALL_PHONE)
         ActivityCompat.requestPermissions(this, permissions,0)
         Log.d("Main", sharedPrefs.getBoolean("main", false).toString())
 
@@ -76,12 +71,14 @@ class MainActivity : AppCompatActivity() {
                 val uid=writeUid.text.toString()
                 val name=name.text.toString()
                 val home=address.text.toString()
+                val careNumber=care_number.text.toString()
                 val seniorReset= SeniorService.SeniorEarlier("", 0)
                 for(i in 0..23) {
                     ref.child("$uid/$i").setValue(seniorReset)
                 }
                 ref.child("$uid/imie").setValue(name)
                 ref.child("$uid/dom").setValue(home)
+                ref.child("$uid/numerOpiekun").setValue(careNumber)
                 Intent(this, SeniorService::class.java).also { intent ->
                     intent.putExtra("uid",uid)
                     intent.putExtra("name",name)

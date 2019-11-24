@@ -5,16 +5,17 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
-import android.content.Intent.ACTION_SENDTO
 import android.net.Uri
 import android.widget.RemoteViews
-import androidx.core.content.ContextCompat.startActivity
+import com.google.firebase.database.FirebaseDatabase
 
 
 /**
  * Implementation of App Widget functionality.
  */
 class NewAppWidget : AppWidgetProvider() {
+    val ACTION_UID = "com.example.senior.UID"
+    var uid=""
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -35,27 +36,32 @@ class NewAppWidget : AppWidgetProvider() {
     }
 
 }
-private fun getPendingIntent(context: Context, value: Int): PendingIntent {
+//private fun getPendingIntent(context: Context, value: Int): PendingIntent {
     //1
 
     //2
-    val callIntent = Intent(Intent.ACTION_CALL)
-    callIntent.data = Uri.parse("tel:786280342")
+    //val senior=SeniorService()
+    //val uid=senior.uid
+    //val ref= FirebaseDatabase.getInstance().getReference("/seniors/$uid")
 
-    return PendingIntent.getActivity(context, value, callIntent, 0)
-}
+
+   // return PendingIntent.getActivity(context, value, callIntent, 0)
+//}
 
 internal fun updateAppWidget(
     context: Context,
     appWidgetManager: AppWidgetManager,
     appWidgetId: Int
 ) {
+    val callIntent = Intent(Intent.ACTION_CALL)
+    callIntent.data = Uri.parse("tel:513134497")
+    val pendingIntent = PendingIntent.getActivity(context, 0, callIntent, 0)
     val widgetText = context.getString(R.string.appwidget_text)
     // Construct the RemoteViews object
     val views = RemoteViews(context.packageName, R.layout.new_app_widget)
     //views.setTextViewText(R.id.appwidget_text, widgetText)
 
-    views.setOnClickPendingIntent(R.id.appwidget_button,getPendingIntent(context,0))
+    views.setOnClickPendingIntent(R.id.appwidget_button,pendingIntent)
 
     // Instruct the widget manager to update the widget
     appWidgetManager.updateAppWidget(appWidgetId, views)

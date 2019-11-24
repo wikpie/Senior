@@ -23,8 +23,7 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.example.senior.movement.StepDetector
 import com.example.senior.movement.StepListener
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.*
 import com.google.android.gms.maps.GoogleMap
 import com.google.firebase.database.FirebaseDatabase
 import com.polidea.rxandroidble2.RxBleClient
@@ -44,7 +43,9 @@ class SeniorService: Service(), SensorEventListener, StepListener {
     private lateinit var mFusedLocationClient: FusedLocationProviderClient
     var mLastLocation: Location? = null
     private var address=""
-    private var uid=""
+    var uid=""
+    private lateinit var locationRequest:LocationRequest
+    private lateinit var locationCallback:LocationCallback
     private val geocoder= Geocoder(this, Locale.getDefault())
     private var addresses= listOf<Address>()
     private var latitude:Double=0.0
@@ -59,12 +60,7 @@ class SeniorService: Service(), SensorEventListener, StepListener {
     private lateinit var simpleStepDetector: StepDetector
     private lateinit var accel: Sensor
     private var numSteps: Int = 0
-
-
-
-
-
-
+    
     override fun onBind(p0: Intent?): IBinder? {
         return null
     }
@@ -134,10 +130,24 @@ class SeniorService: Service(), SensorEventListener, StepListener {
                 editor.apply()
             }
             else{
-                uid= sharedPrefs.getString("uid","jo")!!
+                uid= sharedPrefs.getString("uid"," ")!!
             }
         }
-
+        locationRequest = LocationRequest.create()
+        locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+        locationRequest.interval = 20 * 1000
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult?) {
+                locationResult ?: return
+                for (location in locationResult.locations){
+                    latitude =  location.latitude
+                    longitude = location.longitude
+                    Log.d("Main",latitude.toString())
+                    Log.d("Main",longitude.toString())
+                    addresses=geocoder.getFromLocation(latitude,longitude,1)
+                    address= addresses[0].getAddressLine(0)
+                }
+            }}
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         getLocation()
         createNotificationChannel()
@@ -202,6 +212,13 @@ class SeniorService: Service(), SensorEventListener, StepListener {
             .addOnFailureListener{
                 Log.d("jojjo","gównogównogówno")
             }
+
+        startLocationUpdates()
+    }
+    private fun startLocationUpdates() {
+        mFusedLocationClient.requestLocationUpdates(locationRequest,
+            locationCallback,
+            Looper.getMainLooper())
     }
 
 
