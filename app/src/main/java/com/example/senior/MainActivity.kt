@@ -18,10 +18,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 class MainActivity : AppCompatActivity() {
 
     private var PRIVATE_MODE = 0
-    private var macAdrress=""
-    //private val characteristicUUID= UUID.fromString("0x2A37")
-    private var listName= mutableListOf<String>()
-    private var listMac= mutableListOf<String>()
+
     private val bluetoothAdapter:BluetoothAdapter?= BluetoothAdapter.getDefaultAdapter()
     private val REQUEST_ENABLE_BT = 1
     private val sharedPrefs by lazy { getSharedPreferences("main", PRIVATE_MODE) }
@@ -30,38 +27,16 @@ class MainActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val permissions = arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION, android.Manifest.permission.CALL_PHONE)
+        val permissions = arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION, android.Manifest.permission.CALL_PHONE, android.Manifest.permission.BLUETOOTH, android.Manifest.permission.BLUETOOTH_ADMIN)
         ActivityCompat.requestPermissions(this, permissions,0)
         Log.d("Main", sharedPrefs.getBoolean("main", false).toString())
 
         if (sharedPrefs.getBoolean("main", false)) {
             checkBluetoothWorking(this)
-           /* var rxBleClient = RxBleClient.create(this)
-            var scanSubscription = rxBleClient.scanBleDevices(
-                ScanSettings.Builder()
-                    .build()
-            )
-                .subscribe(
-                    { scanResult: ScanResult? ->
-                        Log.d("jooooo", scanResult.toString())
-                        val deviceName= scanResult?.bleDevice?.name
-                        val deviceMac= scanResult?.bleDevice?.macAddress
-                        listName.add(deviceName.toString())
-                        listMac.add(deviceMac.toString())
-                        Log.d("jooooo", listName.toString())
-                        Log.d("jooooo1", listMac.toString())
-                    }
-                ) { throwable: Throwable? -> }
-            scanSubscription.dispose()*/
-            /*macAdrress=listMac[0]
-            val device: RxBleDevice =rxBleClient.getBleDevice(macAdrress)
-            val disposable=device.establishConnection(true)
-                .flatMapSingle{
-                    it.readCharacteristic(characteristicUUID)
-                }
-                .subscribe { characteristicValue->
-                    Log.d("joooossssss", characteristicValue.toString())
-                }*/
+
+
+
+
             Intent(this, SeniorService::class.java).also { intent ->
                 startForegroundService(intent)
             }
@@ -72,7 +47,7 @@ class MainActivity : AppCompatActivity() {
                 val name=name.text.toString()
                 val home=address.text.toString()
                 val careNumber=care_number.text.toString()
-                val seniorReset= SeniorService.SeniorEarlier("", 0)
+                val seniorReset= SeniorService.SeniorEarlier(0.0,0.0, 0)
                 for(i in 0..23) {
                     ref.child("$uid/$i").setValue(seniorReset)
                 }
@@ -101,6 +76,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+
 }
 
 

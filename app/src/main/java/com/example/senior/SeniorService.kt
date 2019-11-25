@@ -30,6 +30,7 @@ import com.polidea.rxandroidble2.RxBleClient
 import com.polidea.rxandroidble2.RxBleDevice
 import com.polidea.rxandroidble2.scan.ScanResult
 import com.polidea.rxandroidble2.scan.ScanSettings
+import io.reactivex.disposables.Disposable
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
@@ -42,13 +43,10 @@ class SeniorService: Service(), SensorEventListener, StepListener {
     private lateinit var mainHandler: Handler
     private lateinit var mFusedLocationClient: FusedLocationProviderClient
     var mLastLocation: Location? = null
-    private var address=""
     var uid=""
     private lateinit var locationRequest:LocationRequest
     private lateinit var locationCallback:LocationCallback
-    private val geocoder= Geocoder(this, Locale.getDefault())
-    private var addresses= listOf<Address>()
-    private var latitude:Double=0.0
+    private var latitude=0.0
     private var longitude=0.0
     private var databaseLocation=" "
     private var databasePulse=0
@@ -60,20 +58,32 @@ class SeniorService: Service(), SensorEventListener, StepListener {
     private lateinit var simpleStepDetector: StepDetector
     private lateinit var accel: Sensor
     private var numSteps: Int = 0
-    
+    private var macAdrress=""
+    val HEART_RATE_SERVICE_UUID = UUID.fromString("0000180D-0000-1000-8000-00805F9B34FB")
+    val HEART_RATE_MEASUREMENT_CHAR_UUID = UUID.fromString("00002A37-0000-1000-8000-00805F9B34FB")
+    val HEART_RATE_CONTROL_POINT_CHAR_UUID =  UUID.fromString("00002A39-0000-1000-8000-00805F9B34FB")
+    private lateinit var rxBleClient: RxBleClient
+    private lateinit var scanSubscription: Disposable
+    private lateinit var connectSubs: Disposable
+    private var listName= mutableListOf<String>()
+    private var listMac= mutableListOf<String>()
+    private lateinit var device: RxBleDevice
+
     override fun onBind(p0: Intent?): IBinder? {
         return null
     }
     private val sendData = object : Runnable {
         @RequiresApi(Build.VERSION_CODES.O)
         override fun run() {
-            var senior=Senior(address, latitude, longitude, databasePulse,numSteps)
-            var seniorEarlier=SeniorEarlier(address,databasePulse)
-            val seniorResetNow=Senior(address,latitude,longitude,databasePulse,0)
-            val seniorReset=SeniorEarlier("",0)
+            if(::device.isInitialized){
+                connect()
+                connectSubs.dispose()
+            }
+            var senior=Senior(latitude, longitude, databasePulse,numSteps)
+            var seniorEarlier=SeniorEarlier(latitude,longitude,databasePulse)
+            val seniorResetNow=Senior(latitude,longitude,databasePulse,0)
+            val seniorReset=SeniorEarlier(0.0,0.0,0)
             ref.child("$uid/now").setValue(senior)
-            Log.d("jojjo","$mLastLocation")
-            Log.d("jojjo","$numSteps")
             mainHandler.postDelayed(this,1000)
             var currentDateTime=LocalDateTime.now()
             var time = currentDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
@@ -108,7 +118,7 @@ class SeniorService: Service(), SensorEventListener, StepListener {
                 ref.child("$uid/now").setValue(seniorResetNow)
                 numSteps=0
                 databasePulse=0
-                for(i in 7..21) {
+                for(i in 0..23) {
                     ref.child("$uid/$i").setValue(seniorReset)
                 }
             }
@@ -133,6 +143,9 @@ class SeniorService: Service(), SensorEventListener, StepListener {
                 uid= sharedPrefs.getString("uid"," ")!!
             }
         }
+
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
         locationRequest = LocationRequest.create()
         locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         locationRequest.interval = 20 * 1000
@@ -142,15 +155,33 @@ class SeniorService: Service(), SensorEventListener, StepListener {
                 for (location in locationResult.locations){
                     latitude =  location.latitude
                     longitude = location.longitude
-                    Log.d("Main",latitude.toString())
-                    Log.d("Main",longitude.toString())
-                    addresses=geocoder.getFromLocation(latitude,longitude,1)
-                    address= addresses[0].getAddressLine(0)
                 }
             }}
-        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         getLocation()
         createNotificationChannel()
+        rxBleClient = RxBleClient.create(this)
+        scanSubscription =rxBleClient.scanBleDevices(
+            ScanSettings.Builder()
+                .build()
+        )
+            .subscribe(
+                { scanResult: ScanResult? ->
+                    val deviceName= scanResult?.bleDevice?.name
+                    val deviceMac= scanResult?.bleDevice?.macAddress
+                    if(deviceName!=null) {
+                        listName.add(deviceName.toString())
+                        listMac.add(deviceMac.toString())
+                        scanSubscription.dispose()
+                        macAdrress=listMac[listMac.size-1]
+                        connect()
+                        connectSubs.dispose()
+                    }
+                },
+                { throwable: Throwable? ->
+                    return@subscribe
+                }
+            )
+
         mainHandler = Handler(Looper.getMainLooper())
         mainHandler.post(sendData)
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -199,8 +230,6 @@ class SeniorService: Service(), SensorEventListener, StepListener {
                     longitude = location.longitude
                     Log.d("Main",latitude.toString())
                     Log.d("Main",longitude.toString())
-                    addresses=geocoder.getFromLocation(latitude,longitude,1)
-                    address= addresses[0].getAddressLine(0)
                 }
                 else{
                     Toast.makeText(
@@ -210,7 +239,7 @@ class SeniorService: Service(), SensorEventListener, StepListener {
                 }
             }
             .addOnFailureListener{
-                Log.d("jojjo","gównogównogówno")
+
             }
 
         startLocationUpdates()
@@ -220,16 +249,17 @@ class SeniorService: Service(), SensorEventListener, StepListener {
             locationCallback,
             Looper.getMainLooper())
     }
-
-
-
-
-
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun setTime(){
-        val currentTime= LocalDateTime.now()
-        val time=currentTime.format(timeFormat)
+    private fun connect(){
+        device=rxBleClient.getBleDevice(macAdrress)
+        connectSubs=device.establishConnection(true)
+            .flatMapSingle{
+                it.readCharacteristic(HEART_RATE_MEASUREMENT_CHAR_UUID) }
+            .subscribe ({ characteristicValue->
+                databasePulse= characteristicValue.toString().toInt()
+            },
+                { throwable: Throwable? ->
+                    return@subscribe
+                })
     }
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -240,10 +270,7 @@ class SeniorService: Service(), SensorEventListener, StepListener {
             val manager = getSystemService(NotificationManager::class.java)
             manager!!.createNotificationChannel(serviceChannel)
         }
-
-
-
     }
-    class Senior(val location:String,val latitude:Double, val longitude: Double, val pulse: Int, val steps:Int)
-    class SeniorEarlier(val location:String, val pulse:Int)
+    class Senior(val latitude:Double, val longitude: Double, val pulse: Int, val steps:Int)
+    class SeniorEarlier(val latitude:Double, val longitude: Double, val pulse:Int)
 }
