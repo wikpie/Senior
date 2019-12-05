@@ -39,7 +39,6 @@ import java.util.*
 class SeniorService: Service(), SensorEventListener, StepListener {
     private val name = "Service Senior"
     @RequiresApi(Build.VERSION_CODES.O)
-    val timeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("dd-mm-yy HH:mm")
     private lateinit var mainHandler: Handler
     private lateinit var mFusedLocationClient: FusedLocationProviderClient
     var mLastLocation: Location? = null
@@ -48,7 +47,6 @@ class SeniorService: Service(), SensorEventListener, StepListener {
     private lateinit var locationCallback:LocationCallback
     private var latitude=0.0
     private var longitude=0.0
-    private var databaseLocation=" "
     private var databasePulse=0
     private lateinit var map: GoogleMap
     private val ref=FirebaseDatabase.getInstance().getReference("/seniors")
@@ -72,6 +70,7 @@ class SeniorService: Service(), SensorEventListener, StepListener {
     override fun onBind(p0: Intent?): IBinder? {
         return null
     }
+
     private val sendData = object : Runnable {
         @RequiresApi(Build.VERSION_CODES.O)
         override fun run() {
@@ -112,7 +111,6 @@ class SeniorService: Service(), SensorEventListener, StepListener {
                 "21:00" -> ref.child("$uid/21").setValue(seniorEarlier)
                 "22:00" -> ref.child("$uid/22").setValue(seniorEarlier)
                 "23:00" -> ref.child("$uid/23").setValue(seniorEarlier)
-
             }
             if(time=="00:01"){
                 ref.child("$uid/now").setValue(seniorResetNow)
@@ -124,11 +122,11 @@ class SeniorService: Service(), SensorEventListener, StepListener {
             }
         }
     }
+
     private val bluetoothAdapter: BluetoothAdapter? by lazy(LazyThreadSafetyMode.NONE) {
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothManager.adapter
     }
-
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -143,9 +141,7 @@ class SeniorService: Service(), SensorEventListener, StepListener {
                 uid= sharedPrefs.getString("uid"," ")!!
             }
         }
-
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-
         locationRequest = LocationRequest.create()
         locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         locationRequest.interval = 20 * 1000
@@ -181,7 +177,6 @@ class SeniorService: Service(), SensorEventListener, StepListener {
                     return@subscribe
                 }
             )
-
         mainHandler = Handler(Looper.getMainLooper())
         mainHandler.post(sendData)
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -239,7 +234,10 @@ class SeniorService: Service(), SensorEventListener, StepListener {
                 }
             }
             .addOnFailureListener{
-
+                Toast.makeText(
+                    this, "Nie można znaleźć lokalizacji",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
 
         startLocationUpdates()
@@ -257,7 +255,7 @@ class SeniorService: Service(), SensorEventListener, StepListener {
             .subscribe ({ characteristicValue->
                 databasePulse= characteristicValue.toString().toInt()
             },
-                { throwable: Throwable? ->
+                {
                     return@subscribe
                 })
     }

@@ -1,5 +1,7 @@
 package com.example.senior.movement
 
+import kotlin.math.sqrt
+
 object SensorFilter {
 
     fun sum(array: FloatArray): Float {
@@ -23,7 +25,7 @@ object SensorFilter {
         for (i in array.indices) {
             retval += array[i] * array[i]
         }
-        return Math.sqrt(retval.toDouble()).toFloat()
+        return sqrt(retval.toDouble()).toFloat()
     }
 
 

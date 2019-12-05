@@ -1,5 +1,7 @@
 package com.example.senior.movement
 
+import kotlin.math.min
+
 class StepDetector {
 
     private var accelRingCounter = 0
@@ -31,17 +33,17 @@ class StepDetector {
         accelRingZ[accelRingCounter % ACCEL_RING_SIZE] = currentAccel[2]
 
         val worldZ = FloatArray(3)
-        worldZ[0] = SensorFilter.sum(accelRingX) / Math.min(accelRingCounter, ACCEL_RING_SIZE)
-        worldZ[1] = SensorFilter.sum(accelRingY) / Math.min(accelRingCounter, ACCEL_RING_SIZE)
-        worldZ[2] = SensorFilter.sum(accelRingZ) / Math.min(accelRingCounter, ACCEL_RING_SIZE)
+        worldZ[0] = SensorFilter.sum(accelRingX) / min(accelRingCounter, ACCEL_RING_SIZE)
+        worldZ[1] = SensorFilter.sum(accelRingY) / min(accelRingCounter, ACCEL_RING_SIZE)
+        worldZ[2] = SensorFilter.sum(accelRingZ) / min(accelRingCounter, ACCEL_RING_SIZE)
 
-        val normalization_factor = SensorFilter.norm(worldZ)
+        val normalizationFactor = SensorFilter.norm(worldZ)
 
-        worldZ[0] = worldZ[0] / normalization_factor
-        worldZ[1] = worldZ[1] / normalization_factor
-        worldZ[2] = worldZ[2] / normalization_factor
+        worldZ[0] = worldZ[0] / normalizationFactor
+        worldZ[1] = worldZ[1] / normalizationFactor
+        worldZ[2] = worldZ[2] / normalizationFactor
 
-        val currentZ = SensorFilter.dot(worldZ, currentAccel) - normalization_factor
+        val currentZ = SensorFilter.dot(worldZ, currentAccel) - normalizationFactor
         velRingCounter++
         velRing[velRingCounter % VEL_RING_SIZE] = currentZ
 
@@ -60,10 +62,7 @@ class StepDetector {
 
         private val ACCEL_RING_SIZE = 50
         private val VEL_RING_SIZE = 10
-
-        // change this threshold according to your sensitivity preferences
         private val STEP_THRESHOLD = 50f
-
         private val STEP_DELAY_NS = 250000000
     }
 }

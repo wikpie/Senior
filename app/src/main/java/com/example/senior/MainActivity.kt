@@ -18,10 +18,10 @@ import kotlinx.android.synthetic.main.activity_main.*
 class MainActivity : AppCompatActivity() {
 
     private var PRIVATE_MODE = 0
-
     private val bluetoothAdapter:BluetoothAdapter?= BluetoothAdapter.getDefaultAdapter()
     private val REQUEST_ENABLE_BT = 1
     private val sharedPrefs by lazy { getSharedPreferences("main", PRIVATE_MODE) }
+    private val sharedPrefs1 by lazy { getSharedPreferences("number", PRIVATE_MODE) }
     private val ref=FirebaseDatabase.getInstance().getReference("seniors")
     @TargetApi(Build.VERSION_CODES.O)
     @RequiresApi(Build.VERSION_CODES.O)
@@ -33,10 +33,12 @@ class MainActivity : AppCompatActivity() {
 
         if (sharedPrefs.getBoolean("main", false)) {
             checkBluetoothWorking(this)
-
-
-
-
+            Intent(this, NewAppWidget::class.java).also { intent ->
+                Log.d("intent", "Wysłano numer")
+                val careNumber=sharedPrefs1.getString("number","")
+                intent.putExtra("number",careNumber)
+                sendBroadcast(intent)
+            }
             Intent(this, SeniorService::class.java).also { intent ->
                 startForegroundService(intent)
             }
@@ -59,9 +61,18 @@ class MainActivity : AppCompatActivity() {
                     intent.putExtra("name",name)
                     startForegroundService(intent)
                 }
+                Log.d("intent", careNumber)
+                Intent(this, NewAppWidget::class.java).also { intent ->
+                    Log.d("intent", "pojechało")
+                    intent.putExtra("number",careNumber)
+                    sendBroadcast(intent)
+                }
                 val editor = sharedPrefs.edit()
                 editor.putBoolean("main", true)
                 editor.apply()
+                val editor1 = sharedPrefs.edit()
+                editor1.putString("number", careNumber)
+                editor1.apply()
             }
         }
     }
@@ -76,8 +87,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
-
 }
 
 
